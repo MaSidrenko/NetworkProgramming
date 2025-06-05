@@ -63,36 +63,37 @@ void main()
 	}
 
 	//5. Получение и отправка данных:
-	CONST CHAR SEND_BUFFER[] = "Hello Server, I am Client";
+	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am Client";
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH]{};
 
-	iResult = send(connect_socket, SEND_BUFFER, strlen(SEND_BUFFER), 0);
-	if (iResult == SOCKET_ERROR)
-	{
-		std::cout << "Send data failed with " << WSAGetLastError() << std::endl;
-		closesocket(connect_socket);
-		freeaddrinfo(result);
-		WSACleanup();
-		return;
-	}
-	std::cout << iResult << " Bytes sent" << std::endl;
-
-	//iResult = shutdown(connect_socket, SD_SEND);
-	if (iResult == SOCKET_ERROR)
-	{
-		std::cout << "Shitdown failed << " << WSAGetLastError() << std::endl;
-		closesocket(connect_socket);
-		freeaddrinfo(result);
-		WSACleanup();
-		return;
-	}
-	//6. Receivie data:
 	do
 	{
+		iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			std::cout << "Send data failed with " << WSAGetLastError() << std::endl;
+			closesocket(connect_socket);
+			freeaddrinfo(result);
+			WSACleanup();
+			return;
+		}
+		std::cout << iResult << " Bytes sent" << std::endl;
+
+		//iResult = shutdown(connect_socket, SD_SEND);
+		//if (iResult == SOCKET_ERROR)
+		//{
+		//	std::cout << "Shitdown failed << " << WSAGetLastError() << std::endl;
+		//	closesocket(connect_socket);
+		//	freeaddrinfo(result);
+		//	WSACleanup();
+		//	return;
+		//}
+
+		//6. Receivie data:
 		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
 		if (iResult > 0)
 		{
-			std::cout << "Bytes received: " << iResult <<  ", Message: " << recvbuffer << std::endl;
+			std::cout << "Bytes received: " << iResult << ", Message: " << recvbuffer << std::endl;
 		}
 		else if (iResult == 0)
 		{
@@ -102,8 +103,12 @@ void main()
 		{
 			std::cout << "Receive failed with code " << WSAGetLastError() << std::endl;
 		}
-	
-	} while (iResult > 0 /*&& strcmp(recvbuffer, "exit")*/);
+		std::cout << "Введите сообщение: ";
+		ZeroMemory(send_buffer, sizeof(send_buffer));
+		ZeroMemory(recvbuffer, sizeof(recvbuffer));
+		std::cin.getline(send_buffer, DEFAULT_BUFFER_LENGTH);
+
+	} while (iResult > 0);
 
 	//7. Disconnect:
 	iResult = shutdown(connect_socket, SD_SEND);
