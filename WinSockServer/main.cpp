@@ -113,11 +113,12 @@ void main()
 		else
 		{
 			std::cout << "Error: recv() failed with code " << WSAGetLastError() << std::endl;
-			closesocket(ClientSocket);
-			closesocket(ListenSocket);
-			freeaddrinfo(result);
-			WSACleanup();
-			return;
 		}
 	} while (iResult > 0);
+	closesocket(ClientSocket);
+	closesocket(ListenSocket);
+	freeaddrinfo(result);
+	WSACleanup();
 }
+
+//VOID HadleClient(SOCKET ClientSocket,)
