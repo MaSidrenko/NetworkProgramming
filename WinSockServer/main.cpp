@@ -7,12 +7,14 @@
 #include<WS2tcpip.h>
 #include<iphlpapi.h>
 #include<iostream>
-
+#include<thread>
 #pragma comment(lib, "WS2_32.lib")
 
 #define DEFAULT_PORT				"27015"
 #define DEFAULT_BUFFER_LENGTH		1500
 
+
+VOID HandleClient(SOCKET ClientSocket);
 
 void main()
 {
@@ -80,10 +82,43 @@ void main()
 		WSACleanup();
 		return;
 	}
+	CONST INT MAX_CLIENST = 5;
+	SOCKET clients[MAX_CLIENST] = {};
+	DWORD dwThreadIDs[MAX_CLIENST] = {};
+	HANDLE hThreads[MAX_CLIENST] = {};
+	INT i = 0;
+
+	while (i < 5)
+	{
+		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
+		//HandleClient(ClientSocket);
+
+		clients[i] = ClientSocket;
+		hThreads[i] = CreateThread
+		(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)HandleClient,
+			(LPVOID)clients[i],
+			0,
+			&dwThreadIDs[i]
+		);
+		i++;
+
+	}
+	//closesocket(ClientSocket);
+	closesocket(ListenSocket);
+	freeaddrinfo(result);
+	WSACleanup();
+}
+
+VOID HandleClient(SOCKET ClientSocket)
+{
+
+	INT iResult = 0;
 	//6. Зациклимаем Сокет на получение соединений от клиентов:
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
 	int recv_buffer_length = DEFAULT_BUFFER_LENGTH;
-	SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
 	do
 	{
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
@@ -98,10 +133,6 @@ void main()
 			{
 				std::cout << "Error: Send failed with code: " << WSAGetLastError() << std::endl;
 				closesocket(ClientSocket);
-				closesocket(ListenSocket);
-				freeaddrinfo(result);
-				WSACleanup();
-				return;
 			}
 
 			std::cout << "Bytes sent: " << iSendResult << std::endl;
@@ -115,10 +146,5 @@ void main()
 			std::cout << "Error: recv() failed with code " << WSAGetLastError() << std::endl;
 		}
 	} while (iResult > 0);
-	closesocket(ClientSocket);
-	closesocket(ListenSocket);
-	freeaddrinfo(result);
-	WSACleanup();
-}
 
-//VOID HadleClient(SOCKET ClientSocket,)
+}
