@@ -11,6 +11,7 @@
 
 #define DEFAULT_PORT			"27015"
 #define DEFAULT_BUFFER_LENGTH	1500
+#define SZ_SORRY				"Sorry,but all is busy"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -95,6 +96,7 @@ void main()
 		{
 			std::cout << "Receive failed with code " << WSAGetLastError() << std::endl;
 		}
+		if (strcmp(recvbuffer, SZ_SORRY) == 0)break;
 		std::cout << "Введите сообщение: ";
 		ZeroMemory(send_buffer, sizeof(send_buffer));
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
@@ -109,4 +111,5 @@ void main()
 	closesocket(connect_socket);
 	freeaddrinfo(result);
 	WSACleanup();
+	system("PAUSE");
 }

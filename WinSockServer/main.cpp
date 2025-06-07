@@ -12,7 +12,7 @@
 
 #define DEFAULT_PORT				"27015"
 #define DEFAULT_BUFFER_LENGTH		1500
-
+#define SZ_SORRY					"Sorry,but all is busy"
 
 VOID HandleClient(SOCKET ClientSocket);
 
@@ -82,31 +82,48 @@ void main()
 		WSACleanup();
 		return;
 	}
-	CONST INT MAX_CLIENST = 5;
+	CONST INT MAX_CLIENST = 3;
 	SOCKET clients[MAX_CLIENST] = {};
 	DWORD dwThreadIDs[MAX_CLIENST] = {};
 	HANDLE hThreads[MAX_CLIENST] = {};
 	INT i = 0;
 
-	while (i < 5)
+	while (true)
 	{
+
 		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
-		//HandleClient(ClientSocket);
-
-		clients[i] = ClientSocket;
-		hThreads[i] = CreateThread
-		(
-			NULL,
-			0,
-			(LPTHREAD_START_ROUTINE)HandleClient,
-			(LPVOID)clients[i],
-			0,
-			&dwThreadIDs[i]
-		);
-		i++;
-
+		if (i < MAX_CLIENST)
+		{
+			//HandleClient(ClientSocket);
+			clients[i] = ClientSocket;
+			hThreads[i] = CreateThread
+			(
+				NULL,
+				0,
+				(LPTHREAD_START_ROUTINE)HandleClient,
+				(LPVOID)clients[i],
+				0,
+				&dwThreadIDs[i]
+			);
+			i++;
+		}
+		else
+		{
+			CHAR receive_buffer[DEFAULT_BUFFER_LENGTH] = {};
+			INT iResult = recv(ClientSocket, receive_buffer, DEFAULT_BUFFER_LENGTH, 0);
+			if (iResult > 0)
+			{
+				std::cout << "Bytes received: " << iResult << std::endl;
+				std::cout << "Message: " << receive_buffer << std::endl;
+				//CHAR sz_sorry[] = "Sorry, but all is busy";
+				INT iSendResult = send(ClientSocket, SZ_SORRY, strlen(SZ_SORRY), 0);
+				closesocket(ClientSocket);
+			}
+		}
 	}
-	//closesocket(ClientSocket);
+
+	WaitForMultipleObjects(MAX_CLIENST, hThreads, TRUE, INFINITE);
+
 	closesocket(ListenSocket);
 	freeaddrinfo(result);
 	WSACleanup();
