@@ -131,18 +131,34 @@ void main()
 
 VOID HandleClient(SOCKET ClientSocket)
 {
+	sockaddr_in peer;
+	CHAR address[16] = {};
+	INT addres_lenght = 16;
+	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
+	getpeername(ClientSocket, (SOCKADDR*)&peer, &addres_lenght);
+	inet_ntop(AF_INET, &peer.sin_addr, address, INET6_ADDRSTRLEN);
+	int port = ((peer.sin_port & 0xFF) << 8) + (peer.sin_port >> 8);
+	std::cout << address << ":" << port << std::endl;
+	
 
 	INT iResult = 0;
 	//6. Зациклимаем Сокет на получение соединений от клиентов:
-	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
 	int recv_buffer_length = DEFAULT_BUFFER_LENGTH;
 	do
 	{
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
-		iResult = recv(ClientSocket, recvbuffer, recv_buffer_length, 0);
+		//iResult = recv(ClientSocket, recvbuffer, recv_buffer_length, 0);
+		iResult = recvfrom(ClientSocket, recvbuffer, recv_buffer_length, 0, (SOCKADDR*)&peer, &addres_lenght);
 		if (iResult > 0)
 		{
-			std::cout << "Bytes received: " << iResult << std::endl;
+			inet_ntop(AF_INET, &peer.sin_addr, address, INET_ADDRSTRLEN);
+			std::cout << "Peer: " << address << std::endl
+				//<< (int)peer.sin_addr.S_un.S_un_b.s_b1 << "."
+				//<< (int)peer.sin_addr.S_un.S_un_b.s_b2 << "."
+				//<< (int)peer.sin_addr.S_un.S_un_b.s_b3 << "."
+				//<< (int)peer.sin_addr.S_un.S_un_b.s_b4 << "."
+				<< std::endl;
+			std::cout << iResult << " Bytes received from " << address << ":" << port << std::endl;
 			CHAR sz_responce[] = "Hello I am Server! Nice to meet you";
 			std::cout << "Message: " << recvbuffer << std::endl;
 			INT iSendResult = send(ClientSocket, recvbuffer, strlen(recvbuffer), 0);
