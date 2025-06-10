@@ -1,4 +1,5 @@
-﻿#ifndef WIN32_LEAN_AND_MEAN
+﻿#define _CRT_SECURE_NO_WARNINGS
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif // !WIN32_LEAN_AND_MEAN
 
@@ -13,7 +14,17 @@
 #define DEFAULT_BUFFER_LENGTH	1500
 #define SZ_SORRY				"Sorry,but all is busy"
 
+BOOL g_connected = TRUE;
+
+
+
+VOID Send(SOCKET connect_socket, addrinfo* result);
+VOID Receive(SOCKET connect_socket);
+//#define ALL_IN_ONE
+
 #pragma comment(lib, "Ws2_32.lib")
+
+
 
 void main()
 {
@@ -64,6 +75,7 @@ void main()
 	}
 
 	//5. Получение и отправка данных:
+#ifdef ALL_IN_ONE
 	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am Client";
 	CHAR recvbuffer[DEFAULT_BUFFER_LENGTH]{};
 
@@ -80,7 +92,7 @@ void main()
 		}
 		std::cout << iResult << " Bytes sent" << std::endl;
 
-		
+
 
 		//6. Receivie data:
 		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
@@ -105,6 +117,27 @@ void main()
 		SetConsoleCP(866);
 		//for (int i = 0; send_buffer[i]; i++)send_buffer[i] = tolower(send_buffer[i]);
 	} while (iResult > 0 && strcmp(send_buffer, "exit"));
+#endif // ALL_IN_ONE
+	
+
+
+	//TODO:Sync threads
+	DWORD dwRecvThreadID = 0;
+	HANDLE recvHandle = 
+		CreateThread
+		(
+			NULL,
+			0,
+			(LPTHREAD_START_ROUTINE)Receive,
+			(LPVOID)connect_socket,
+			0,
+			&dwRecvThreadID
+		);
+
+
+	Send(connect_socket, result);
+	g_connected = FALSE;
+	
 
 	//7. Disconnect:
 	iResult = shutdown(connect_socket, SD_SEND);
@@ -112,4 +145,62 @@ void main()
 	freeaddrinfo(result);
 	WSACleanup();
 	system("PAUSE");
+}
+
+VOID Send(SOCKET connect_socket, addrinfo* result)
+{
+	INT iResult = 0;
+	std::cout << "Your nickanme please: "; 
+	CHAR sz_nickname[32]{};
+	std::cin.getline(sz_nickname, 32);
+	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am ";
+	strcat(send_buffer, sz_nickname);
+	do
+	{
+		iResult = send(connect_socket, send_buffer, strlen(send_buffer), 0);
+		if (iResult == SOCKET_ERROR)
+		{
+			std::cout << "Send data failed with " << WSAGetLastError() << std::endl;
+			closesocket(connect_socket);
+			freeaddrinfo(result);
+			WSACleanup();
+			return;
+		}
+		std::cout << iResult << " Bytes sent" << std::endl;
+
+		std::cout << "Введите сообщение: ";
+		ZeroMemory(send_buffer, sizeof(send_buffer));
+		SetConsoleCP(1251);
+		std::cin.getline(send_buffer, DEFAULT_BUFFER_LENGTH);
+		SetConsoleCP(866);
+		//for (int i = 0; send_buffer[i]; i++)send_buffer[i] = tolower(send_buffer[i]);
+	} while (iResult > 0 && strcmp(send_buffer, "exit"));
+
+}
+
+VOID Receive(SOCKET connect_socket)
+{
+	INT iResult = 0;
+	CHAR  recvbuffer[DEFAULT_BUFFER_LENGTH]{};
+	do
+	{
+		//6. Receivie data:
+		iResult = recv(connect_socket, recvbuffer, DEFAULT_BUFFER_LENGTH, 0);
+		if (iResult > 0)
+		{
+			std::cout << "Bytes received: " << iResult << ", Message: " << recvbuffer << std::endl;
+		}
+		else if (iResult == 0)
+		{
+			std::cout << "Connection closed" << std::endl;
+		}
+		else
+		{
+			std::cout << "Receive failed with code " << WSAGetLastError() << std::endl;
+		}
+		if (strcmp(recvbuffer, SZ_SORRY) == 0)break;
+		ZeroMemory(recvbuffer, sizeof(recvbuffer));
+		
+	} while (g_connected);
+
 }

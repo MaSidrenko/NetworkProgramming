@@ -15,6 +15,12 @@
 #define SZ_SORRY					"Sorry,but all is busy"
 
 VOID HandleClient(SOCKET ClientSocket);
+CONST INT MAX_CLIENST = 3;
+SOCKET clients[MAX_CLIENST] = {};
+DWORD dwThreadIDs[MAX_CLIENST] = {};
+HANDLE hThreads[MAX_CLIENST] = {};
+
+INT g_connected_clients_count = 0;
 
 void main()
 {
@@ -82,30 +88,26 @@ void main()
 		WSACleanup();
 		return;
 	}
-	CONST INT MAX_CLIENST = 3;
-	SOCKET clients[MAX_CLIENST] = {};
-	DWORD dwThreadIDs[MAX_CLIENST] = {};
-	HANDLE hThreads[MAX_CLIENST] = {};
-	INT i = 0;
 
 	while (true)
 	{
 
 		SOCKET ClientSocket = accept(ListenSocket, NULL, NULL);
-		if (i < MAX_CLIENST)
+		if (g_connected_clients_count < MAX_CLIENST)
 		{
+
 			//HandleClient(ClientSocket);
-			clients[i] = ClientSocket;
-			hThreads[i] = CreateThread
+			clients[g_connected_clients_count] = ClientSocket;
+			hThreads[g_connected_clients_count] = CreateThread
 			(
 				NULL,
 				0,
 				(LPTHREAD_START_ROUTINE)HandleClient,
-				(LPVOID)clients[i],
+				(LPVOID)clients[g_connected_clients_count],
 				0,
-				&dwThreadIDs[i]
+				&dwThreadIDs[g_connected_clients_count]
 			);
-			i++;
+			g_connected_clients_count++;
 		}
 		else
 		{
@@ -139,7 +141,7 @@ VOID HandleClient(SOCKET ClientSocket)
 	inet_ntop(AF_INET, &peer.sin_addr, address, INET6_ADDRSTRLEN);
 	int port = ((peer.sin_port & 0xFF) << 8) + (peer.sin_port >> 8);
 	std::cout << address << ":" << port << std::endl;
-	
+
 
 	INT iResult = 0;
 	//6. Зациклимаем Сокет на получение соединений от клиентов:
@@ -152,23 +154,26 @@ VOID HandleClient(SOCKET ClientSocket)
 		if (iResult > 0)
 		{
 			inet_ntop(AF_INET, &peer.sin_addr, address, INET_ADDRSTRLEN);
-			std::cout << "Peer: " << address << std::endl
-				//<< (int)peer.sin_addr.S_un.S_un_b.s_b1 << "."
-				//<< (int)peer.sin_addr.S_un.S_un_b.s_b2 << "."
-				//<< (int)peer.sin_addr.S_un.S_un_b.s_b3 << "."
-				//<< (int)peer.sin_addr.S_un.S_un_b.s_b4 << "."
-				<< std::endl;
-			std::cout << iResult << " Bytes received from " << address << ":" << port << std::endl;
+			//std::cout << "Peer: " << address << std::endl
+			//	//<< (int)peer.sin_addr.S_un.S_un_b.s_b1 << "."
+			//	//<< (int)peer.sin_addr.S_un.S_un_b.s_b2 << "."
+			//	//<< (int)peer.sin_addr.S_un.S_un_b.s_b3 << "."
+			//	//<< (int)peer.sin_addr.S_un.S_un_b.s_b4 << "."
+			//	<< std::endl;
+			std::cout << iResult << " Bytes received from " << address << ":" << ntohs(peer.sin_port) << std::endl;
 			CHAR sz_responce[] = "Hello I am Server! Nice to meet you";
 			std::cout << "Message: " << recvbuffer << std::endl;
-			INT iSendResult = send(ClientSocket, recvbuffer, strlen(recvbuffer), 0);
-			if (iSendResult == SOCKET_ERROR)
+			for (int i = 0; i < g_connected_clients_count; i++)
 			{
-				std::cout << "Error: Send failed with code: " << WSAGetLastError() << std::endl;
-				closesocket(ClientSocket);
-			}
+				INT iSendResult = send(clients[i], recvbuffer, strlen(recvbuffer), 0);
+				if (iSendResult == SOCKET_ERROR)
+				{
+					std::cout << "Error: Send failed with code: " << WSAGetLastError() << std::endl;
+					closesocket(ClientSocket);
+				}
 
-			std::cout << "Bytes sent: " << iSendResult << std::endl;
+			}
+			//std::cout << "Bytes sent: " << iSendResult << std::endl;
 		}
 		else if (iResult == 0)
 		{
@@ -181,3 +186,4 @@ VOID HandleClient(SOCKET ClientSocket)
 	} while (iResult > 0);
 
 }
+
