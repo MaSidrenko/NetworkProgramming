@@ -23,7 +23,7 @@ VOID Receive(SOCKET connect_socket);
 //#define ALL_IN_ONE
 
 #pragma comment(lib, "Ws2_32.lib")
-
+CHAR sz_nickname[32]{};
 
 
 void main()
@@ -134,7 +134,7 @@ void main()
 			&dwRecvThreadID
 		);
 
-
+	std::cout << g_connected << std::endl;
 	Send(connect_socket, result);
 	g_connected = FALSE;
 	
@@ -151,7 +151,7 @@ VOID Send(SOCKET connect_socket, addrinfo* result)
 {
 	INT iResult = 0;
 	std::cout << "Your nickanme please: "; 
-	CHAR sz_nickname[32]{};
+
 	std::cin.getline(sz_nickname, 32);
 	CHAR send_buffer[DEFAULT_BUFFER_LENGTH] = "Hello Server, I am ";
 	strcat(send_buffer, sz_nickname);
@@ -193,14 +193,16 @@ VOID Receive(SOCKET connect_socket)
 		else if (iResult == 0)
 		{
 			std::cout << "Connection closed" << std::endl;
+			break;
 		}
 		else
 		{
 			std::cout << "Receive failed with code " << WSAGetLastError() << std::endl;
+			break;
 		}
 		if (strcmp(recvbuffer, SZ_SORRY) == 0)break;
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
 		
 	} while (g_connected);
-
+	std::cout << "Receive Closing" << std::endl;
 }

@@ -1,4 +1,5 @@
-﻿#ifndef WIN32_LEAN_AND_MEAN
+﻿#define _CRT_SECURE_NO_WARNINGS
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif // !WIN32_LEAN_AND_MEAN
 
@@ -133,6 +134,7 @@ void main()
 
 VOID HandleClient(SOCKET ClientSocket)
 {
+	BOOL init = TRUE;
 	sockaddr_in peer;
 	CHAR address[16] = {};
 	INT addres_lenght = 16;
@@ -145,12 +147,27 @@ VOID HandleClient(SOCKET ClientSocket)
 
 	INT iResult = 0;
 	//6. Зациклимаем Сокет на получение соединений от клиентов:
+	//CHAR recvbuffer[DEFAULT_BUFFER_LENGTH] = {};
+	CHAR nickname[32]{};
+	CHAR sendbuffer[DEFAULT_BUFFER_LENGTH] = {};
 	int recv_buffer_length = DEFAULT_BUFFER_LENGTH;
+
 	do
 	{
 		ZeroMemory(recvbuffer, sizeof(recvbuffer));
+		ZeroMemory(sendbuffer, sizeof(sendbuffer));
 		//iResult = recv(ClientSocket, recvbuffer, recv_buffer_length, 0);
 		iResult = recvfrom(ClientSocket, recvbuffer, recv_buffer_length, 0, (SOCKADDR*)&peer, &addres_lenght);
+		if (init)
+		{
+			strcpy(nickname, strrchr(recvbuffer, ' '));
+			sprintf(sendbuffer, "%s connect from [%s:%i]", nickname, address, port);
+			init = FALSE;
+		}
+		else
+		{
+			sprintf(sendbuffer, "%s[%s:%i] - %s", nickname, address, port, recvbuffer);
+		}
 		if (iResult > 0)
 		{
 			inet_ntop(AF_INET, &peer.sin_addr, address, INET_ADDRSTRLEN);
@@ -165,7 +182,7 @@ VOID HandleClient(SOCKET ClientSocket)
 			std::cout << "Message: " << recvbuffer << std::endl;
 			for (int i = 0; i < g_connected_clients_count; i++)
 			{
-				INT iSendResult = send(clients[i], recvbuffer, strlen(recvbuffer), 0);
+				INT iSendResult = send(clients[i], sendbuffer, strlen(sendbuffer), 0);
 				if (iSendResult == SOCKET_ERROR)
 				{
 					std::cout << "Error: Send failed with code: " << WSAGetLastError() << std::endl;
@@ -184,6 +201,7 @@ VOID HandleClient(SOCKET ClientSocket)
 			std::cout << "Error: recv() failed with code " << WSAGetLastError() << std::endl;
 		}
 	} while (iResult > 0);
+
 
 }
 
